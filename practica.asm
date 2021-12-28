@@ -43,7 +43,7 @@ pop si
 endm
 
 AnalizarComando macro com ; A1:B2 arreglo1 = [A][1]; arreglo2 = [B][2]
-LOCAL Ver, Seguir, Mover, Error, ValidarNegras, ValidarBlancas
+LOCAL Ver, Seguir, Mover, Error, ValidarNegras, ValidarBlancas, SaltarFicha, SoloMover
 
 mov al,com[0]
 mov posicionInicial[0],al ; arreglo1[0] = comando[0]
@@ -86,9 +86,11 @@ jmp ValidarBlancas
 
 ValidarNegras:
 	cmp cx,-18 ; cx == -18
+	mov restador,-9 ; RESTADOR PARA INDICAR LA POSICION QUE DEBE ELIMINARSE
 	mov saltaFicha,1 ;INDICA QUE ES UN MOVIMIENTO SALTAFICHA
 	je Mover
 	cmp cx,-14 ; cx == -14
+	mov restador,-7 ; RESTADOR PARA INDICAR LA POSICION QUE DEBE ELIMINARSE
 	mov saltaFicha,1 ;INDICA QUE ES UN MOVIMIENTO SALTAFICHA
 	je Mover
 	cmp cx,-9 ; cx == -9
@@ -101,9 +103,11 @@ ValidarNegras:
 
 ValidarBlancas:
 	cmp cx,18 ; cx == 18
+	mov restador,9 ; RESTADOR PARA INDICAR LA POSICION QUE DEBE ELIMINARSE
 	mov saltaFicha,1 ;INDICA QUE ES UN MOVIMIENTO SALTAFICHA
 	je Mover
 	cmp cx,14 ; cx == 14
+	mov restador,7 ; RESTADOR PARA INDICAR LA POSICION QUE DEBE ELIMINARSE
 	mov saltaFicha,1 ;INDICA QUE ES UN MOVIMIENTO SALTAFICHA
 	je Mover
 	cmp cx,9 ; cx == 9
@@ -118,8 +122,15 @@ ValidarBlancas:
 Mover:
 
 cmp saltaFicha,1
-je 
+je SaltarFicha
+jmp SoloMover
 
+SaltarFicha:
+mov bx,si ; bx = posicion inicial
+sub bx,restador ; posicion inicial - restador
+mov tablero[bx],95
+
+SoloMover:
 xor ax,ax
 
 mov al, tablero[si] ;al = arreglo[si]
@@ -199,14 +210,14 @@ endm
 ;----------------SEGMENTO DE DATO---------------------
 
 .data
-enc db 0ah, 0dh, 'Universidad de San Carlos de Guatemala',0ah, 0dh,'Arquitectura de Ensambladores y Computadores 1' , 0ah, 0dh, 'Jose Fernando Valdez Perez 201503651' , 0ah, 0dh, 'Practica 3',0ah, 0dh, 'Inrese x si desea cerrar el programa' , '$'
+enc db 0ah, 0dh, 'Universidad de San Carlos de Guatemala',0ah, 0dh,'Arquitectura de Ensambladores y Computadores 1' , 0ah, 0dh, 'Gerson Aaron Quinia Folgar 201904157' , 0ah, 0dh, 'Practica 3',0ah, 0dh, 'Inrese x si desea cerrar el programa' , '$'
 jp1 db 0ah, 0dh, 'Jugador 1 ingrese su nombre:', '$'
 jp2 db 0ah, 0dh, 'Jugador 2 ingrese su nombre:', '$'
 msjTurno db 0ah, 0dh, 'Turno del jugador:', '$'
 finJuego db 0ah, 0dh, 'Ingrese x para finalizar el juego', '$'
 juegaB db 0ah, 0dh, 'Juega blancas', '$'
 juegaN db 0ah, 0dh, 'Juega negras', '$'
-punteo db 0ah, 0dh, 'Punteo actual:', '$'
+punteo db 0ah, 0dh, 'Punteo actual: ', '$'
 que db 0ah, 0dh, 'yeaaaaaaaaaa', '$'
 errorDeMovimiento db 0ah, 0dh, 'Error: Movimiento invalido', '$'
 salto db 0ah,0dh, '$' ,'$'
@@ -219,7 +230,12 @@ posicionFinal db 2 dup('$'), '$'
 
 ; DATOS PARA CONTROL DE FICHAS 
 posInit db 0
-posFinish db 0 
+posFinish db 0
+restador dw 0  
+
+; DATOS PARA CONTROL DE PUNTEOS
+punteoJugador1 dw 0
+punteoJugador2 dw 0
 
 valorInicial db 0, '$' 
 valorFinal db 0, '$' 
@@ -248,7 +264,7 @@ comando db 5 dup('$'), '$' ; A1:B2
 
 .code
 main proc
-	
+
 	Menu:
 
 
