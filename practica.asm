@@ -43,7 +43,7 @@ pop si
 endm
 
 AnalizarComando macro com ; A1:B2 arreglo1 = [A][1]; arreglo2 = [B][2]
-LOCAL Ver, Seguir, Mover, Error, ValidarNegras, ValidarBlancas, SaltarFicha, SoloMover
+LOCAL Ver, Seguir, Mover, Error, ValidarNegras, ValidarBlancas, SaltarFicha, SoloMover, IncrementoJugador1, ValidarReinaN, ValidarReinaB, CoronarNegras, CoronarBlancas
 
 mov al,com[0]
 mov posicionInicial[0],al ; arreglo1[0] = comando[0]
@@ -130,13 +130,57 @@ mov bx,si ; bx = posicion inicial
 sub bx,restador ; posicion inicial - restador
 mov tablero[bx],95
 
+cmp jueganNegras, 0 ; jueganNegras == 0
+je IncrementoJugador1 
+inc punteoJugador2 ; AUMENTAR EL PUTNEO DEL JUGADOR 2
+jmp SoloMover
+IncrementoJugador1:
+inc punteoJugador1 ; AUMENTAR EL PUNTEO DEL JUGADOR 1
+
+
 SoloMover:
 xor ax,ax
 
 mov al, tablero[si] ;al = arreglo[si]
 mov tablero[si],95 ;arreglo[si] = '_'
-
 mov tablero[di],al ;arreglo[di] = arreglo[si]
+
+cmp jueganNegras, 1
+je ValidarReinaN
+jmp ValidarReinaB
+jmp Seguir
+
+ValidarReinaN:
+cmp di,58
+jl Seguir
+je CoronarNegras
+cmp di,60
+je CoronarNegras
+cmp di,62
+je CoronarNegras
+cmp di,64
+je CoronarNegras
+jmp Seguir
+
+ValidarReinaB:
+cmp di,8
+jg Seguir
+je CoronarBlancas
+cmp di,5
+je CoronarBlancas
+cmp di,3
+je CoronarBlancas
+cmp di,1
+je CoronarBlancas
+jmp Seguir
+
+CoronarNegras:
+mov tablero[di],20 ;arreglo[di] = ASCII 20
+jmp Seguir
+
+CoronarBlancas:
+mov tablero[di],21 ;arreglo[di] = ASCII 21
+
 jmp Seguir
 ;-------------TERMINA CAMBIO DE POSICION DE LA FICHA-----------------
 
@@ -221,6 +265,7 @@ punteo db 0ah, 0dh, 'Punteo actual: ', '$'
 que db 0ah, 0dh, 'yeaaaaaaaaaa', '$'
 errorDeMovimiento db 0ah, 0dh, 'Error: Movimiento invalido', '$'
 salto db 0ah,0dh, '$' ,'$'
+espacio db ' ', '$'
 nombre1 db 10 dup('$'), '$'
 nombre2 db 10 dup('$'), '$'
 textoComando db 0ah, 0dh, 'Ingrese su comando:', '$'
@@ -236,6 +281,8 @@ restador dw 0
 ; DATOS PARA CONTROL DE PUNTEOS
 punteoJugador1 dw 0
 punteoJugador2 dw 0
+punteoTexto1 db 2 dup('$'), '$'
+punteoTexto2 db 2 dup('$'), '$'
 
 valorInicial db 0, '$' 
 valorFinal db 0, '$' 
@@ -288,11 +335,23 @@ main proc
 
 		Turno1:
 		mov seRepite,0
-		mov jueganNegras,0
+		mov jueganNegras,0 ; DESACTIVA BANDERA 
 		print msjTurno
 		print nombre1
 		print juegaB
 		print punteo
+
+		print nombre1
+		print espacio
+		IntToString punteoJugador1,punteoTexto1
+		print punteoTexto1
+		print espacio
+		IntToString punteoJugador2,punteoTexto2
+		print espacio
+		print nombre2
+		print espacio
+		print punteoTexto2
+
 		print salto
 		ImprimirTablero tablero
 		print textoComando
@@ -313,11 +372,23 @@ main proc
 
 		Turno2:
 		mov seRepite,0
-		mov jueganNegras,1
+		mov jueganNegras,1 ; ACTIVA BANDERA
 		print msjTurno
 		print nombre2
 		print juegaN
 		print punteo
+
+		print nombre1
+		print espacio
+		IntToString punteoJugador1,punteoTexto1
+		print punteoTexto1
+		print espacio
+		IntToString punteoJugador2,punteoTexto2
+		print espacio
+		print nombre2
+		print espacio
+		print punteoTexto2
+
 		print salto
 		ImprimirTablero tablero
 		print textoComando
