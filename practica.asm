@@ -10,6 +10,12 @@ xor si,si
 mov si,1
 xor di,di
 
+mov contador,1 ; SE REINICIA EL CONTADOR
+IntToString contador,numero ; CONVIERTO EL CONTADOR A STRING
+print numero ; IMPRIMO EL NUMERO 1
+print espacio ; IMPRIMO ESPACIO
+
+
 	Mientras:
 		cmp si,65;17
 		je FinMientras				; while(si<=17){}
@@ -31,9 +37,18 @@ xor di,di
 		jmp Mientras
 
 	ImprimirSalto:
+		inc contador
 		xor di,di 			; di = 0
 		print salto			;print("/n")
 		inc si  			; si++
+		
+		; MIENTRAS CONTADOR NO SEA IGUAL A NUEVE LO IMPRIME
+		cmp contador,9 ; contador == 9
+		je Mientras
+		IntToString contador,numero
+		print numero
+		print espacio
+
 		jmp Mientras
 
 	FinMientras:
@@ -43,7 +58,7 @@ pop si
 endm
 
 AnalizarComando macro com ; A1:B2 arreglo1 = [A][1]; arreglo2 = [B][2]
-LOCAL Ver, Seguir, Mover, Error, ValidarNegras, ValidarBlancas, SaltarFicha, SoloMover, IncrementoJugador1, ValidarReinaN, ValidarReinaB, CoronarNegras, CoronarBlancas
+LOCAL Ver, Seguir, Mover, Error, ValidarNegras, ValidarBlancas, SaltarFicha, SoloMover, IncrementoJugador1, ValidarReinaN, ValidarReinaB, CoronarNegras, CoronarBlancas, ValidarMovReina, validarComidaBlancas, limpiarEspacio
 
 mov al,com[0]
 mov posicionInicial[0],al ; arreglo1[0] = comando[0]
@@ -73,12 +88,16 @@ mov di,ax
 
 
 ;aqui van validaciones
-inc bandera
-print bandera
+
 mov dx,di ; GUARDA EL INIDICE FINAL EN dx
 mov cx,si ; GUARDA EL INDICE INICIAL EN cx
 
 sub cx,dx ; cx = cx - dx
+
+cmp tablero[si],20
+je ValidarMovReina
+cmp tablero[si],21
+je ValidarMovReina
 
 cmp jueganNegras,1
 je ValidarNegras
@@ -118,6 +137,37 @@ ValidarBlancas:
 	je Mover
 	jmp Error
 
+ValidarMovReina:
+	cmp cx,18 ; cx == 18
+	mov restador,9 ; RESTADOR PARA INDICAR LA POSICION QUE DEBE ELIMINARSE
+	mov saltaFicha,1 ;INDICA QUE ES UN MOVIMIENTO SALTAFICHA
+	je Mover
+	cmp cx,14 ; cx == 14
+	mov restador,7 ; RESTADOR PARA INDICAR LA POSICION QUE DEBE ELIMINARSE
+	mov saltaFicha,1 ;INDICA QUE ES UN MOVIMIENTO SALTAFICHA
+	je Mover
+	cmp cx,9 ; cx == 9
+	mov saltaFicha,0 ;INDICA QUE NO ES UN MOVIMIENTO SALTAFICHA
+	je Mover
+	cmp cx,7 ; cx == 7
+	mov saltaFicha,0 ;INDICA QUE NO ES UN MOVIMIENTO SALTAFICHA
+	je Mover
+	cmp cx,-18 ; cx == -18
+	mov restador,-9 ; RESTADOR PARA INDICAR LA POSICION QUE DEBE ELIMINARSE
+	mov saltaFicha,1 ;INDICA QUE ES UN MOVIMIENTO SALTAFICHA
+	je Mover
+	cmp cx,-14 ; cx == -14
+	mov restador,-7 ; RESTADOR PARA INDICAR LA POSICION QUE DEBE ELIMINARSE
+	mov saltaFicha,1 ;INDICA QUE ES UN MOVIMIENTO SALTAFICHA
+	je Mover
+	cmp cx,-9 ; cx == -9
+	mov saltaFicha,0 ;INDICA QUE NO ES UN MOVIMIENTO SALTAFICHA
+	je Mover
+	cmp cx,-7 ; cx == -7
+	mov saltaFicha,0 ;INDICA QUE NO ES UN MOVIMIENTO SALTAFICHA
+	je Mover
+	jmp Error
+
 ;-------------INICIA CAMBIO DE POSICION DE LA FICHA-----------------
 Mover:
 
@@ -128,7 +178,19 @@ jmp SoloMover
 SaltarFicha:
 mov bx,si ; bx = posicion inicial
 sub bx,restador ; posicion inicial - restador
-mov tablero[bx],95
+
+cmp jueganNegras,1 ; juegan negras == 1
+jl validarComidaBlancas ; SI ES MENOR ENTONCES ES 0
+cmp tablero[bx],1 ; COMPARA SI LA FICHA A COMER ES DEL COLOR CONTRARIO 
+je Error ;SI ES DEL MISMO COLOR LA FICHA QUE SALTA ENTONCES SALTA ERROR
+jmp limpiarEspacio
+validarComidaBlancas:
+cmp tablero[bx],2
+je Error
+jmp limpiarEspacio
+
+limpiarEspacio:
+mov tablero[bx],95 ; [ficha] = _
 
 cmp jueganNegras, 0 ; jueganNegras == 0
 je IncrementoJugador1 
@@ -140,8 +202,13 @@ inc punteoJugador1 ; AUMENTAR EL PUNTEO DEL JUGADOR 1
 
 SoloMover:
 xor ax,ax
-
 mov al, tablero[si] ;al = arreglo[si]
+; ---VERIFICA QUE NO EXISTA UNA FICHA EN ESA POSICION---
+cmp tablero[di],1
+je Error
+cmp tablero[di],2
+je Error
+; ---VERIFICA QUE NO EXISTA UNA FICHA EN ESA POSICION---
 mov tablero[si],95 ;arreglo[si] = '_'
 mov tablero[di],al ;arreglo[di] = arreglo[si]
 
@@ -268,6 +335,12 @@ salto db 0ah,0dh, '$' ,'$'
 espacio db ' ', '$'
 nombre1 db 10 dup('$'), '$'
 nombre2 db 10 dup('$'), '$'
+
+encabezadoHorizontal db 0ah, 0dh, '  A B C D E F G H', '$'
+
+nombreRep1 db 10 dup('$'), '$'
+nombreRep2 db 10 dup('$'), '$'
+
 textoComando db 0ah, 0dh, 'Ingrese su comando:', '$'
 
 posicionInicial db 2 dup('$'), '$'
@@ -283,6 +356,9 @@ punteoJugador1 dw 0
 punteoJugador2 dw 0
 punteoTexto1 db 2 dup('$'), '$'
 punteoTexto2 db 2 dup('$'), '$'
+punteoRep1 db 2 dup('$'), '$'
+punteoRep2 db 2 dup('$'), '$'
+
 
 valorInicial db 0, '$' 
 valorFinal db 0, '$' 
@@ -292,11 +368,15 @@ resultado db 0, '$'
 columna db 0, '$'
 fila db 0, '$'
 
+punteoHtml db 0ah, 0dh, 'Punteo (contrincante): ', ' '
+nombresHtml db 0ah, 0dh, 'Jugadores: ', ' '
+
 ; BANDERAS
 bandera db 0
 seRepite db 0
 jueganNegras db 0 ; BANDERA PARA SABER QUE TURNO JUEGA
 saltaFicha db 0 ; BANDERA PARA SABER SI INTENTA SALTAR FICHA
+contador dw 1
 
 tablero db 65 dup('$'), '$'
 
@@ -304,6 +384,36 @@ numero db 2 dup('$'), '$'
 
 comando db 5 dup('$'), '$' ; A1:B2
 
+comandoReporte db 5 dup('REP'), '$' 
+
+handler dW ?
+nombreArchivo db 'reporte.htm',0
+saltoRep db 0ah,0dh, ' ' ,' '
+espacioRep db ' ', ' '
+fichaNormal db 0ah, 0dh, '&#8226', ' '
+
+; ETIQUETAS PARA REPORTE EN HTML
+abrirHtml db '<html>'
+cerrarHtml db '</html>'
+abrirParrafo db '<p>'
+cerrarParrafo db '</p>'
+abrirTabla db '<table id="tablero">'
+cerrarTabla db '</table>'
+abrirFila db '<tr>'
+cerrarFila db '</tr>'
+abrirColumna db '<td>'
+cerrarColumna db '</td>'
+saltoHtml db '</br>'
+
+fichaBlancaHtml db '<td style="text-align:center; color:white;	">⚪</td>'
+fichaNegraHtml db '<td style="text-align:center; color:black;	">⚫</td>'
+reinaNegraHtml db '<td>&#9813</td>'
+reinaBlancaHtml db '<td>&#x265B</td>'
+
+estilosCSS1 db '<style>body{background: #00af2c;color: #eee;font-family: sans-serif;text-align: center;}'
+estilosCSS2 db '#tablero{background: url(http://jesuscastillo.esy.es/DisenoInterfacesWeb/Tema4/imagenes/madera.jpeg);box-shadow: 0 10px 10px -6px rgba(0, 0, 0, .6);border-radius: 3px;border-collapse: collapse;width: 400px;height: 400px;margin: auto;}'
+estilosCSS3 db '#tablero td{color: rgb(247, 240, 240);font-size: 36px;text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.6);;width: 50px;height: 50px;}'
+estilosCSS4 db '#tablero tr:nth-child(odd) td:nth-child(even),#tablero tr:nth-child(even) td:nth-child(odd){background: rgba(0, 0, 0, 0.5);}#tablero tr:nth-child(n+7) td{color: rgb(29, 28, 28);text-shadow: 1px 1px 1px rgba(0,0,0,0.6);}</style>'
 
 
 ;----------------SEGMENTO DE CODIGO---------------------
@@ -313,7 +423,6 @@ comando db 5 dup('$'), '$' ; A1:B2
 main proc
 
 	Menu:
-
 
 		print enc
 		print salto 
@@ -337,33 +446,54 @@ main proc
 		mov seRepite,0
 		mov jueganNegras,0 ; DESACTIVA BANDERA 
 		print msjTurno
+		limpiarTexto nombre1,SIZEOF nombre1,36,32 ; LIMPIA LA COPIA DEL NOMBRE DEL JUGADOR
 		print nombre1
 		print juegaB
 		print punteo
 
-		print nombre1
+		;print nombre1
 		print espacio
 		IntToString punteoJugador1,punteoTexto1
 		print punteoTexto1
-		print espacio
+		;print espacio
 		IntToString punteoJugador2,punteoTexto2
-		print espacio
-		print nombre2
-		print espacio
-		print punteoTexto2
+		;print espacio
+		;print nombre2
+		;print espacio
+		;print punteoTexto2
 
+		print salto
+		print encabezadoHorizontal
 		print salto
 		ImprimirTablero tablero
 		print textoComando
 		obtenerTexto comando
 		print salto
-
+		; ------------INICIA VERIFICACION DE ENTRADA---------------
+		mov cx,3   ;Determinamos la cantidad de datos a leer/comparar
+		mov AX,DS  ;mueve el segmento datos a AX
+		mov ES,AX  ;Mueve los datos al segmento extra
+		lea si,comando  ;cargamos en si la cadena que contiene vec
+		lea di,comandoReporte ;cargamos en di la cadena que contiene vec2
+		repe cmpsb  ;compara las dos cadenas
+		je Reportar1 ;Si fueron iguales
 		AnalizarComando comando
+		jmp Continuar1
+
+		Reportar1:
+		mov seRepite,1
+		CrearTableroHtml tablero
+		jmp Continuar1
+
+		Continuar1:
+
+		; ------------TERMINA VERIFICACION DE ENTRADA---------------
 
 		print finJuego
 		getChar ; lee un caracter del teclado y lo guarda en al
 		cmp al, 120 ; if (al == 120){va a brincar a la etiqueta salir}else{va a continuar con el programa}
 		je Menu 
+
 
 		cmp seRepite,1 
 		je Turno1
@@ -378,23 +508,43 @@ main proc
 		print juegaN
 		print punteo
 
-		print nombre1
-		print espacio
+		;print nombre1
+		;print espacio
 		IntToString punteoJugador1,punteoTexto1
-		print punteoTexto1
-		print espacio
+		;print punteoTexto1
+		;print espacio
 		IntToString punteoJugador2,punteoTexto2
-		print espacio
-		print nombre2
+		;print espacio
+		;print nombre2
 		print espacio
 		print punteoTexto2
 
+		print salto
+		print encabezadoHorizontal
 		print salto
 		ImprimirTablero tablero
 		print textoComando
 		obtenerTexto comando
 
+		; ------------INICIA VERIFICACION DE ENTRADA---------------
+		mov cx,3   ;Determinamos la cantidad de datos a leer/comparar
+		mov AX,DS  ;mueve el segmento datos a AX
+		mov ES,AX  ;Mueve los datos al segmento extra
+		lea si,comando  ;cargamos en si la cadena que contiene vec
+		lea di,comandoReporte ;cargamos en di la cadena que contiene vec2
+		repe cmpsb  ;compara las dos cadenas
+		je Reportar2 ;Si fueron iguales
 		AnalizarComando comando
+		jmp Continuar2
+
+		Reportar2:
+		mov seRepite,1
+		CrearTableroHtml tablero
+		jmp Continuar2
+
+		Continuar2:
+
+		; ------------TERMINA VERIFICACION DE ENTRADA---------------
 
 		print finJuego
 
@@ -412,6 +562,7 @@ main proc
 
 
 	Salir:
+		;CrearTableroHtml tablero
 		close
 
 main endp
